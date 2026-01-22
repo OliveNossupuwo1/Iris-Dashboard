@@ -4,6 +4,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
+import os
 
 st.set_page_config(page_title="Iris Dashboard", layout="wide")
 
@@ -12,31 +14,32 @@ st.title('Iris - Dashboard Complet')
 # Charger les données
 df = pd.read_csv('Iris.csv', sep=';')
 quant_vars = ['PetalLength', 'PetalWidth', 'SepalLength', 'SepalWidth']
-palette = sns.color_palette('Set2', n_colors=3)
+# Palette rouge/blanc
+palette = ['#DC143C', '#FF6B6B', '#FFB3B3']  # Rouge foncé, rouge moyen, rouge clair
+
+# Charger le modèle et scaler
+@st.cache_resource
+def load_model():
+    with open('model.pkl', 'rb') as f:
+        model = pickle.load(f)
+    with open('scaler.pkl', 'rb') as f:
+        scaler = pickle.load(f)
+    return model, scaler
+
+model, scaler = load_model()
 
 # Sidebar pour la prédiction
-st.sidebar.header('Prédiction via API')
+st.sidebar.header('Prédiction')
 sepal_length = st.sidebar.slider('SepalLength', float(df['SepalLength'].min()), float(df['SepalLength'].max()), float(df['SepalLength'].mean()))
 sepal_width = st.sidebar.slider('SepalWidth', float(df['SepalWidth'].min()), float(df['SepalWidth'].max()), float(df['SepalWidth'].mean()))
 petal_length = st.sidebar.slider('PetalLength', float(df['PetalLength'].min()), float(df['PetalLength'].max()), float(df['PetalLength'].mean()))
 petal_width = st.sidebar.slider('PetalWidth', float(df['PetalWidth'].min()), float(df['PetalWidth'].max()), float(df['PetalWidth'].mean()))
 
-if st.sidebar.button('Predict via API'):
-    payload = {
-        'SepalLength': sepal_length,
-        'SepalWidth': sepal_width,
-        'PetalLength': petal_length,
-        'PetalWidth': petal_width
-    }
-    try:
-        resp = requests.post('http://localhost:5000/predict', json=payload, timeout=5)
-        if resp.ok:
-            pred = resp.json().get('prediction')
-            st.sidebar.success(f'Prediction: {pred}')
-        else:
-            st.sidebar.error(f'API error: {resp.status_code} - {resp.text}')
-    except Exception as e:
-        st.sidebar.error(f'Could not reach API: {e}')
+if st.sidebar.button('Prédire'):
+    features = np.array([[sepal_length, sepal_width, petal_length, petal_width]])
+    features_scaled = scaler.transform(features)
+    prediction = model.predict(features_scaled)[0]
+    st.sidebar.success(f'Prédiction: {prediction}')
 
 # Onglets principaux
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -118,7 +121,7 @@ with tab3:
     st.subheader('Histogrammes des 4 variables')
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     axes = axes.flatten()
-    palette_q = sns.color_palette('Set2', n_colors=len(quant_vars))
+    palette_q = ['#DC143C', '#FF6B6B', '#FFB3B3', '#FF4444']  # Palette rouge pour histogrammes
     for ax, var, col in zip(axes, quant_vars, palette_q):
         sns.histplot(df[var], kde=True, ax=ax, color=col, bins=15)
         ax.set_title(f'Histogramme de {var}')
