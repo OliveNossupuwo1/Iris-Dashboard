@@ -2,6 +2,6 @@ pandas
 seaborn
 matplotlib
 scikit-learn
-flask
-streamlit
+numpy
+streamlit>=1.30.0
 requests
