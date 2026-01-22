@@ -4,7 +4,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
 import os
 
 st.set_page_config(page_title="Iris Dashboard", layout="wide")
@@ -17,16 +16,21 @@ quant_vars = ['PetalLength', 'PetalWidth', 'SepalLength', 'SepalWidth']
 # Palette rouge/blanc
 palette = ['#DC143C', '#FF6B6B', '#FFB3B3']  # Rouge foncé, rouge moyen, rouge clair
 
-# Charger le modèle et scaler
+# Entraîner le modèle directement (évite les problèmes de compatibilité pickle)
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+
 @st.cache_resource
-def load_model():
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    with open('scaler.pkl', 'rb') as f:
-        scaler = pickle.load(f)
+def train_model():
+    X = df[quant_vars]
+    y = df['Species']
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    model = KNeighborsClassifier(n_neighbors=3)
+    model.fit(X_scaled, y)
     return model, scaler
 
-model, scaler = load_model()
+model, scaler = train_model()
 
 # Sidebar pour la prédiction
 st.sidebar.header('Prédiction')
